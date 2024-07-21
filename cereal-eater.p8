@@ -5,34 +5,67 @@ radius = 32
 center = 64
 t=0
 
+game_state = "title"
+selected_year = 1
+years = {
+    {bg=0xef, milk=7, flakes={1,2}},
+    {bg=0x03, milk=14, flakes={2,3}},
+    {bg=0x07, milk=2, flakes={3,4}}
+}
 function _init()
-	setup_flakes()
+	 -- Initialize title screen
 end
 
 function _update()
- t=t+1
- move_spoon()
+	if game_state == "title" then
+	 if btnp(❎) then game_state = "year_select" end
+	elseif game_state == "year_select" then
+	 if btnp(⬅️) then selected_year = max(1, selected_year - 1) end
+	 if btnp(➡️) then selected_year = min(#years, selected_year + 1) end
+	 if btnp(❎) then start_game() end
+	else
+	 t=t+1
+	 move_spoon()
+	end
+end
+
+function start_game()
+	setup_flakes()
+	game_state = "game"
 end
 
 function _draw()
-
- fillp(0b1100110000110011)
- rectfill(0,0,128,128,0xef)
- fillp()
- 
- circfill(64,68,42,1)
- circfill(64,64,40,6)
- circfill(64,64,20,15)
- circfill(64,64,radius+4,7)
- 
- draw_splashes()
- 
- move_flakes()
- collide_flakes()
- bound_flakes()
- draw_flakes()
-
- update_spoon()
+	if game_state == "title" then
+	 cls()
+	 print("Cereal Eater", 44, 32, 7)
+	 print("Press X to start", 34, 64, 7)
+	elseif game_state == "year_select" then
+	 cls()
+	 print("Select Year", 44, 32, 7)
+	 print("<- Year " .. selected_year .. " ->", 34, 64, 7)
+	else
+	 local year = years[selected_year]
+	 
+	 -- Background
+	 fillp(0b1100110000110011)
+	 rectfill(0,0,128,128,year.bg)
+	 fillp()
+	 
+	 -- Bowl and milk
+	 circfill(64,68,42,1)
+	 circfill(64,64,40,6)
+	 circfill(64,64,20,15)
+	 circfill(64,64,radius+4,year.milk)
+	 
+	 draw_splashes()
+	 
+	 move_flakes()
+	 collide_flakes()
+	 bound_flakes()
+	 draw_flakes()
+	
+	 update_spoon()
+	end
 end
 
 -->8
@@ -121,42 +154,42 @@ dry_flakes = {}
 flake_amount = 90
 
 function setup_flakes()
-	flakes = {}
-	for i=1,flake_amount do
-	 add(flakes, {
-	  id = i,
-	  x = 64-radius+rnd(radius*2),
-	  y = 64-radius+rnd(radius*2),
-	  a = {x=rnd(4)-2, y=rnd(4)-2},
-	  s = ceil(rnd(1.2)),
-	  b = rnd(6)
-	 })
-	end
-   end
-
-function draw_flakes()
-	for f in all(flakes) do
-		sspr(
-		flake_s[f.s].x,
-		flake_s[f.s].y,
-		flake_s[f.s].w,
-		flake_s[f.s].h-flr(f.b),
-		f.x,f.y-flr(f.b))
-	end
-
-	for f in all(dry_flakes) do
-		sspr(
-		flake_s[f.s].x,
-		flake_s[f.s].y,
-		flake_s[f.s].w,
-		flake_s[f.s].h-flr(f.b),
-		f.x,f.y-flr(f.b),
-		flake_s[f.s].w,
-		flake_s[f.s].h-flr(f.b),
-		false,false)
-	end
+    flakes = {}
+    local year = years[selected_year]
+    for i=1,flake_amount do
+        add(flakes, {
+            id = i,
+            x = 64-radius+rnd(radius*2),
+            y = 64-radius+rnd(radius*2),
+            a = {x=rnd(4)-2, y=rnd(4)-2},
+            s = year.flakes[flr(rnd(2))+1], -- Randomly select one of the two sprites
+            b = rnd(6)
+        })
+    end
 end
 
+function draw_flakes()
+    for f in all(flakes) do
+        sspr(
+        flake_s[f.s].x,
+        flake_s[f.s].y,
+        flake_s[f.s].w,
+        flake_s[f.s].h-flr(f.b),
+        f.x,f.y-flr(f.b))
+    end
+
+    for f in all(dry_flakes) do
+        sspr(
+        flake_s[f.s].x,
+        flake_s[f.s].y,
+        flake_s[f.s].w,
+        flake_s[f.s].h-flr(f.b),
+        f.x,f.y-flr(f.b),
+        flake_s[f.s].w,
+        flake_s[f.s].h-flr(f.b),
+        false,false)
+    end
+end
 --flakes[i][1] + flakes[i].a[1],
 --flakes[i][2] + flakes[i].a[2],
 
@@ -276,6 +309,7 @@ flake_s = {}
 flake_s[1] = {x=45,y=5,w=3,h=3}
 flake_s[2] = {x=45,y=0,w=3,h=3}
 flake_s[3] = {x=40,y=0,w=3,h=3}
+flake_s[4] = {x=40,y=5,w=3,h=3}
 
 splash_s = {}
 splash_s[1] = {x=64,y=0,w=2,h=2}
