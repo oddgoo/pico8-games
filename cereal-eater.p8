@@ -1,9 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
-version 29
+version 42
 __lua__
 radius = 32
 center = 64
 t=0
+
 function _init()
 	setup_flakes()
 end
@@ -15,11 +16,11 @@ end
 
 function _draw()
 
- fillp(0b0011001111001100)
- rectfill(0,0,128,128,0x01)
+ fillp(0b1100110000110011)
+ rectfill(0,0,128,128,0xef)
  fillp()
  
- circfill(64,68,42,0)
+ circfill(64,68,42,1)
  circfill(64,64,40,6)
  circfill(64,64,20,15)
  circfill(64,64,radius+4,7)
@@ -31,7 +32,7 @@ function _draw()
  bound_flakes()
  draw_flakes()
 
- draw_spoon()
+ update_spoon()
 end
 
 -->8
@@ -57,29 +58,45 @@ end
 sfx(3)
 spoon_offset = -4
 
-function draw_spoon()
- if(btn(4)) then
-		if (s_state == 0) then
-		 sfx(1)
-		 add_splash(sp[1],sp[2])
-		end
-		sspr(8,0,32,32,sp[1]+spoon_offset,sp[2]+spoon_offset,
-		size-2,size-2)
-		--circfill(sp[1]-1,sp[2]-1,4,7)
-		s_state=1
+function update_spoon()
+	if(btn(4)) then
+	 if (s_state == 0) then
+	  sfx(1)
+	  add_splash(sp[1],sp[2])
+	 end
+	 sspr(8,0,32,32,sp[1]+spoon_offset,sp[2]+spoon_offset,
+	 size-2,size-2)
+	 s_state=1
 	else
-		sspr(8,0,32,32,sp[1]+spoon_offset,sp[2]+spoon_offset,
-		size,size)
-		sspr(0,8,7, 15,sp[1]+spoon_offset,sp[2]+spoon_offset,
-		8,16)
-		if(s_state==1) then
-		 sfx(2)
-		 radius-=1
-		 s_state=0
-		 eat_flakes_at(sp[1],sp[2])
-		end
-	end	
-end
+	 sspr(8,0,32,32,sp[1]+spoon_offset,sp[2]+spoon_offset,
+	 size,size)
+	 sspr(0,8,7, 15,sp[1]+spoon_offset,sp[2]+spoon_offset,
+	 8,16)
+	 if(s_state==1) then
+	  sfx(2)
+	  radius-=1
+	  s_state=0
+	  eat_flakes_at(sp[1],sp[2])
+	  check_dry_flakes()
+	 end
+	end 
+   end
+
+   function check_dry_flakes()
+	local threshold = -4
+	local radius_threshold = radius - threshold
+	for i = #flakes, 1, -1 do
+	 local f = flakes[i]
+	 local dx = f.x - center
+	 local dy = f.y - center
+	 local dist_sq = dx*dx + dy*dy
+	 if dist_sq > radius_threshold^2 and rnd() < 0.1 then
+	  f.a.x, f.a.y = 0, 0
+	  add(dry_flakes, f)
+	  del(flakes, f)
+	 end
+	end
+   end
 
 function input()
 	if(btn(0)) then a[1]=a[1]-acc end
@@ -100,33 +117,59 @@ end
 -->8
 --flakes---------------
 flakes = {}
+dry_flakes = {}
 flake_amount = 90
 
 function setup_flakes()
+	flakes = {}
 	for i=1,flake_amount do
-		flakes[i]={
-		x=(64-radius+rnd(radius*2)),
-		y=(64-radius+rnd(radius*2)),
-		a = {x=rnd(4)-2,y=rnd(4)-2},
-		s = ceil(rnd(1.2)),
-		b = rnd(6)
-		}
+	 add(flakes, {
+	  id = i,
+	  x = 64-radius+rnd(radius*2),
+	  y = 64-radius+rnd(radius*2),
+	  a = {x=rnd(4)-2, y=rnd(4)-2},
+	  s = ceil(rnd(1.2)),
+	  b = rnd(6)
+	 })
 	end
-end
+   end
 
 function draw_flakes()
 	for f in all(flakes) do
-	 sspr(
-	 flake_s[f.s].x,
-	 flake_s[f.s].y,
-	 flake_s[f.s].w,
-	 flake_s[f.s].h-flr(f.b),
-	 f.x,f.y-flr(f.b))
+		sspr(
+		flake_s[f.s].x,
+		flake_s[f.s].y,
+		flake_s[f.s].w,
+		flake_s[f.s].h-flr(f.b),
+		f.x,f.y-flr(f.b))
+	end
+
+	for f in all(dry_flakes) do
+		sspr(
+		flake_s[f.s].x,
+		flake_s[f.s].y,
+		flake_s[f.s].w,
+		flake_s[f.s].h-flr(f.b),
+		f.x,f.y-flr(f.b),
+		flake_s[f.s].w,
+		flake_s[f.s].h-flr(f.b),
+		false,false)
 	end
 end
 
 --flakes[i][1] + flakes[i].a[1],
 --flakes[i][2] + flakes[i].a[2],
+
+-- function move_flakes()
+-- 	for f in all(flakes) do
+-- 		f.x += f.a.x
+-- 		f.y += f.a.y
+-- 		f.a.x = sin(t/90 + f.id/flake_amount)/2
+-- 		f.a.y = cos(t/60 + f.id/flake_amount)/2
+-- 		f.b += 0.01
+-- 		if f.b > 1.8 then f.b = rnd(4) end
+-- 	end
+-- end
 
 function move_flakes()
 	for i=1,#flakes do
@@ -139,38 +182,48 @@ function move_flakes()
 		if(flakes[i].b>1.8) flakes[i].b=rnd(4)
 	end
 end
-
+   
 function collide_flakes()
-	for i=1,#flakes do
-		for j=i+1,#flakes,2 do
-			local pos_diff= {flakes[i].x - flakes[j].x, flakes[i].y - flakes[j].y }
-			distance = sqrt(pos_diff[1]*pos_diff[1] + pos_diff[2]*pos_diff[2])
-			
-  	if(distance<2) then
-				flakes[i].x = 2*pos_diff[1]/distance + flakes[i].x
-				flakes[i].y = 2*pos_diff[2]/distance + flakes[i].y
-		 end
-		 
-		end 
+for i = 1, #flakes - 1 do
+	local f1 = flakes[i]
+	local f2 = flakes[i + 1]
+	local dx = f1.x - f2.x
+	local dy = f1.y - f2.y
+	local dist_sq = dx*dx + dy*dy
+	
+	if dist_sq < 4 then -- 2^2 = 4
+	local angle = atan2(dy, dx)
+	f1.x += cos(angle) * 0.5
+	f1.y += sin(angle) * 0.5
+	f2.x -= cos(angle) * 0.5
+	f2.y -= sin(angle) * 0.5
 	end
+end
 end
 
 
 function bound_flakes()
-	for i=1,#flakes do
-		local bounded_coord = bound(flakes[i].x, flakes[i].y)
-		flakes[i].x = bounded_coord[1]
-		flakes[i].y = bounded_coord[2]
+for f in all(flakes) do
+	local dx = f.x - center
+	local dy = f.y - center
+	local dist_sq = dx*dx + dy*dy
+	if dist_sq > (radius+5)^2 then
+	local angle = atan2(dy, dx)
+	f.x = center + radius * cos(angle)
+	f.y = center + radius * sin(angle)
 	end
 end
+end
 
-function eat_flakes_at(x,y)
-	for i=#flakes,1,-1 do
-  distance = dist(
-  {flakes[i].x,flakes[i].y},
-  {x,y})
-		if(distance < 8) del(flakes,flakes[i])
+function eat_flakes_at(x, y)
+for i = #flakes, 1, -1 do
+	local f = flakes[i]
+	local dx = f.x - x
+	local dy = f.y - y
+	if dx*dx + dy*dy < 64 then -- 8^2 = 64
+	del(flakes, f)
 	end
+end
 end
 
 -->8
@@ -184,7 +237,7 @@ function bound(cx,cy)
  local pos_diff= {cx - center,cy - center }
  local distance = sqrt(pos_diff[1]*pos_diff[1] + pos_diff[2]*pos_diff[2])
  local bounded = {cx,cy}
- if(distance>radius) then
+ if(distance>radius+5) then
 	bounded[1] = radius*pos_diff[1]/distance + center
 	bounded[2] = radius*pos_diff[2]/distance + center
  end
