@@ -81,11 +81,13 @@ end
 function _draw()
 	if nav_state == "title" then
 	 cls()
-	 print("Cereal Eater", 44, 32, 15)
-	 print("Press X to start", 34, 64, 7)
+	 print("cEREAL eATER", 38, 32, 15)
+	 print("ALPHA 0.2", 43, 41, 1)
+	 print("use ⬅️➡️⬆️⬇️ to move ", 23, 64, 5)
+	 print("❎/x to dunk. 🅾️/z to return", 6, 74, 5)
 	elseif nav_state == "year_select" then
 	 cls()
-	 print("Select Year", 44, 32, 7)
+	 print("Select Year", 42, 32, 7)
 	 print("<- Year " .. years[selected_year].label .. " ->", 34, 64, 7)
 	 local description = years[selected_year].description
 	 local lines = {}
@@ -104,7 +106,7 @@ function _draw()
 	 local y = 80
 	 for line in all(lines) do
 		local x = (128 - #line * 4) / 2
-		print(line, x, y, 7)
+		print(line, x, y, 15)
 		y += 8
 	 end
 
